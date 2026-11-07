@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "smoke": "tsx scripts/smoke.ts",
+    "fake": "tsx scripts/fake-server.ts",
     "start": "node dist/index.js"
   },
   "dependencies": {
