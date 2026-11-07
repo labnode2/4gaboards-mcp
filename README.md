@@ -86,6 +86,11 @@ Ids are numeric strings. Where a list or label is expected you may pass its id *
 | `claim_next_card(board_id, from_list, to_list, order?)` | Task pickup, see below |
 | `delete_card(card_id)`, `delete_comment(card_id, comment_id)` | Only with `FOURGA_ALLOW_DELETE=true` |
 
+> **Default names are translation keys.** On a fresh 4ga Boards instance the default lists and labels are stored as i18n keys
+> (e.g. lists `common.open`, `common.todo`, `common.inProgress`, `common.testing`, `common.done`; labels `common.bug`, `common.urgent`...)
+> and only translated by the web UI. The API, and therefore this server, returns and matches those raw strings, so pass
+> `"from_list": "common.todo"` (or the numeric id) rather than "To Do". Renamed lists use their real names. Run `get_board` first to see what exists.
+
 Examples (what the model sends):
 
 ```json
