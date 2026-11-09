@@ -31,7 +31,7 @@ If several are set, the order above wins.
 | `FOURGA_DEFAULT_BOARD_ID` | unset | Focus mode: every tool is restricted to this board (others are invisible/rejected, `board_id` becomes optional) |
 | `FOURGA_TIMEOUT_MS` | `30000` | Per-request timeout |
 | `MCP_TRANSPORT` / `--http` | stdio | Switch to Streamable HTTP |
-| `MCP_HTTP_HOST` / `MCP_HTTP_PORT` | `127.0.0.1` / `3000` | HTTP bind address. Endpoint: `POST /mcp`, health: `GET /healthz` |
+| `MCP_HTTP_HOST` / `MCP_HTTP_PORT` | `127.0.0.1` / `3000` | HTTP bind address (an empty value means `127.0.0.1`; the Docker image sets `0.0.0.0`). Endpoint: `POST /mcp`, health: `GET /healthz` |
 | `MCP_HTTP_TOKEN` | unset | Bearer token clients must send. **Required** unless host is loopback |
 | `MCP_HTTP_ALLOWED_HOSTS` | unset | Comma-separated allowed `Host` headers (DNS-rebinding protection) |
 
@@ -49,21 +49,69 @@ claude mcp add 4ga \
   -- node /path/to/4gaboards-mcp/dist/index.js
 ```
 
-Container on the homelab (HTTP):
+HTTP, against the container (see [Docker Compose](#docker-compose)):
 
 ```bash
-docker build -t 4gaboards-mcp .
-docker run -d --name 4ga-mcp -p 3000:3000 \
-  -e FOURGA_URL=https://boards.lan \
-  -e FOURGA_CLIENT_ID=... -e FOURGA_CLIENT_SECRET=... \
-  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
-  4gaboards-mcp
-
-claude mcp add --transport http 4ga http://homelab:3000/mcp --header "Authorization: Bearer <MCP_HTTP_TOKEN>"
+claude mcp add --transport http --scope user 4ga http://mcp-host:3000/mcp --header "Authorization: Bearer <MCP_HTTP_TOKEN>"
 ```
 
 The HTTP mode is stateless (one request = one MCP exchange) and has no TLS: put it behind your reverse proxy
 or keep it on a trusted network.
+
+## Docker Compose
+
+`compose.yaml` builds the image and runs the server in HTTP mode on port 3000.
+
+```bash
+cp .env.example .env
+```
+
+Fill in `FOURGA_URL`, the credentials (preferably `FOURGA_CLIENT_ID` and `FOURGA_CLIENT_SECRET`) and `MCP_HTTP_TOKEN`,
+which you can generate with:
+
+```bash
+openssl rand -hex 32
+```
+
+```bash
+docker compose up -d --build
+```
+
+Check it:
+
+```bash
+curl -s http://localhost:3000/healthz
+```
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://localhost:3000/mcp
+```
+
+The second must answer `401`: the server is reachable and requires the token. Update later with:
+
+```bash
+git pull && docker compose up -d --build
+```
+
+- **Leave `MCP_HTTP_HOST` and `MCP_HTTP_PORT` out of `.env`.** `compose.yaml` sets them under `environment:`, which
+  wins over `env_file:`. Without that, `MCP_HTTP_HOST=127.0.0.1` in `.env` would replace the image's `0.0.0.0`: the
+  server would listen only on the container's own loopback and be unreachable from outside, while the container's
+  healthcheck still passes and it shows as healthy. An empty `MCP_HTTP_HOST=` does the same, as it falls back to `127.0.0.1`.
+- Keep port 3000 inside the container: the Dockerfile's healthcheck uses it. To use another port, change only the
+  left side of the mapping (`"8080:3000"`).
+- With a reverse proxy on the same host, publish `"127.0.0.1:3000:3000"` instead, so only the proxy reaches it.
+- If a secret contains `$`, put the value in single quotes in `.env`, or Compose tries to expand it as a variable.
+
+Without Compose:
+
+```bash
+docker build -t 4gaboards-mcp .
+docker run -d --name 4gaboards-mcp -p 3000:3000 \
+  -e FOURGA_URL=https://boards.lan \
+  -e FOURGA_CLIENT_ID=... -e FOURGA_CLIENT_SECRET=... \
+  -e MCP_HTTP_TOKEN="$(openssl rand -hex 32)" \
+  4gaboards-mcp
+```
 
 ## Tools
 
