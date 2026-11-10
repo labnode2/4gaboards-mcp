@@ -39,17 +39,40 @@ See `.env.example`.
 
 ## Claude Code
 
-stdio (the server runs as a child process of Claude Code):
+### stdio (recommended)
+
+Each agent runs its own copy, started by Claude Code as a child process: no port, no token, and it talks to
+4ga Boards over the same HTTPS URL as your browser. Install it once per machine (Node 20+ and git), pinned to a
+commit of this repo. `npm pack` builds it, then the tarball is installed:
 
 ```bash
-claude mcp add 4ga \
-  -e FOURGA_URL=https://boards.lan \
-  -e FOURGA_CLIENT_ID=... -e FOURGA_CLIENT_SECRET=... \
-  -e FOURGA_DEFAULT_BOARD_ID=123 \
-  -- node /path/to/4gaboards-mcp/dist/index.js
+cd "$(mktemp -d)" && npm pack github:labnode2/4gaboards-mcp#<commit> && npm install -g ./4gaboards-mcp-*.tgz
 ```
 
-HTTP, against the container (see [Docker Compose](#docker-compose)):
+(A plain `npm install -g github:...` fails: npm doesn't install the build tools when it prepares a git package for a
+global install.)
+
+```bash
+claude mcp add --scope user 4ga \
+  -e FOURGA_URL=https://boards.lan \
+  -e FOURGA_CLIENT_ID=... -e FOURGA_CLIENT_SECRET=... \
+  -- 4gaboards-mcp
+```
+
+Add `-e FOURGA_DEFAULT_BOARD_ID=123` to restrict it to one board. To update, install again with a newer commit.
+
+- **One API client per agent** (same dedicated user, same limited permissions, see [Security notes](#security-notes)):
+  if one machine leaks its secret, revoke that client in 4ga Boards and the others keep working.
+- The credentials are stored in plain text in Claude Code's config (`~/.claude.json` with `--scope user`).
+  Never use `--scope project` with them: that writes them to `.mcp.json`, which is meant to be committed.
+- Without a global install, use `npx -y github:labnode2/4gaboards-mcp#<commit>` as the command. Its first start
+  downloads and builds the package, which can outlast Claude Code's startup timeout: run that command once by hand
+  with `--version` first.
+- From a clone: `npm ci`, then `node /path/to/4gaboards-mcp/dist/index.js` as the command.
+
+### HTTP
+
+Against the container (see [Docker Compose](#docker-compose)):
 
 ```bash
 claude mcp add --transport http --scope user 4ga http://mcp-host:3000/mcp --header "Authorization: Bearer <MCP_HTTP_TOKEN>"
