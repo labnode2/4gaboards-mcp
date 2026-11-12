@@ -69,14 +69,16 @@ username/password (login + auto re-login on 401), static `FOURGA_TOKEN` (bearer;
 | task update | `PATCH /api/tasks/:id` | `isCompleted?, name?` | `{item: Task}` |
 | add label | `POST /api/cards/:cardId/labels` | `labelId` | `{item: CardLabel}`; 409 if already present |
 | remove label | `DELETE /api/cards/:cardId/labels/:labelId` | - | `{item}`; 404 if absent |
+| add member | `POST /api/cards/:cardId/memberships` | `userId` (must be a board member) | `{item: CardMembership}`; 409 if already assigned; 404 if user not on board |
+| remove member | `DELETE /api/cards/:cardId/memberships?userId=` | - | `{item}`; 404 if not assigned |
 
 Shapes (from models): Card `{id,boardId,listId,name,description,position,isCompleted,completedAt,dueDate,timer,commentCount,isCreatedViaApi,coverAttachmentId,createdAt,updatedAt,...}`;
 List `{id,boardId,name,position,isCollapsed,isCompleted}`; Task `{id,cardId,name,position,isCompleted,dueDate}`;
 Label `{id,boardId,name|null,color}`; CardLabel `{id,cardId,labelId}`; Comment `{id,cardId,userId,data:{text,userId,userName},createdAt}`.
 
-Minimal API-client permission set for every tool here:
+API-client permissions needed to use every tool here (drop the ones for tools you don't use):
 `projects.index, boards.show, cards.show, cards.create, cards.update, comments.index, comments.create,
-tasks.create, tasks.update, card-labels.create, card-labels.delete` (+ `cards.delete`, `comments.delete` only with deletes enabled).
+tasks.create, tasks.update, card-labels.create, card-labels.delete, card-memberships.create, card-memberships.delete` (+ `cards.delete`, `comments.delete` only with deletes enabled).
 
 ## 4. Gaps and how the server works around them
 - **No `GET /lists/:id`, no list->cards endpoint, no tasks/:id GET, no search endpoint.** Cards are

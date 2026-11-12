@@ -61,7 +61,7 @@ export function registerCardTools(server: McpServer, ctx: Ctx): void {
     server,
     'get_card',
     'Get card details',
-    'Get everything about one card: description, list, labels (with names), tasks (checklist items with done state) and the most recent comments (oldest first).',
+    'Get everything about one card: description, list, labels (with names), assigned members, tasks (checklist items with done state) and the most recent comments (oldest first).',
     {
       card_id: idSchema('Card id'),
       comment_limit: z.number().int().min(0).max(50).default(20).describe('How many of the newest comments to include'),

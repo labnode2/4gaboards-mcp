@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { READ, cardSummary, defineTool, idSchema, resolveBoardId, type Ctx } from './shared.js';
+import { READ, cardSummary, defineTool, idSchema, memberView, resolveBoardId, type Ctx } from './shared.js';
 
 export function registerBoardTools(server: McpServer, ctx: Ctx): void {
   const visible = async () => {
@@ -53,7 +53,7 @@ export function registerBoardTools(server: McpServer, ctx: Ctx): void {
     server,
     'get_board',
     'Get board overview',
-    'Get one board: its lists (id, name, isCompleted), labels (id, name, color) and a compact summary of the cards in each list (no descriptions; use get_card for those). Lists and labels ids returned here are what other tools need. Cards are ordered top-to-bottom as on the board.',
+    'Get one board: its lists (id, name, isCompleted), labels (id, name, color), members (id, name, username; assignable to cards) and a compact summary of the cards in each list (no descriptions; use get_card for those). Lists and labels ids returned here are what other tools need. Cards are ordered top-to-bottom as on the board.',
     {
       board_id: idSchema('Board id').optional().describe('Board id; optional in focus mode'),
       include_cards: z.boolean().default(true).describe('Set false to get only lists and labels'),
@@ -68,6 +68,7 @@ export function registerBoardTools(server: McpServer, ctx: Ctx): void {
         name: s.board.name,
         projectId: s.board.projectId,
         labels: s.labels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
+        members: s.members.map(memberView),
         lists: s.lists.map((l) => {
           const cards = s.cards.filter((c) => c.listId === l.id).sort((a, b) => a.position - b.position);
           return {

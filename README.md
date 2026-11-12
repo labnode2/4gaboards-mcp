@@ -138,7 +138,7 @@ docker run -d --name 4gaboards-mcp -p 3000:3000 \
 
 ## Tools
 
-Ids are numeric strings. Where a list or label is expected you may pass its id **or exact name** (case-insensitive) in `list_cards`, `claim_next_card`, `add_label`, `remove_label`.
+Ids are numeric strings. Where a list or label is expected you may pass its id **or exact name** (case-insensitive) in `list_cards`, `claim_next_card`, `add_label`, `remove_label`; users in `add_card_member`, `remove_card_member` (id, username or name).
 
 | Tool | Purpose |
 |---|---|
@@ -154,6 +154,7 @@ Ids are numeric strings. Where a list or label is expected you may pass its id *
 | `add_comment(card_id, text)` | |
 | `create_task(card_id, name)` / `toggle_task(task_id, done)` | Card checklist |
 | `add_label(card_id, label)` / `remove_label(card_id, label)` | Existing board labels |
+| `add_card_member(card_id, user)` / `remove_card_member(card_id, user)` | Assign / unassign a board member (id, username or name); `get_card` and `get_board` list members |
 | `claim_next_card(board_id, from_list, to_list, order?)` | Task pickup, see below |
 | `delete_card(card_id)`, `delete_comment(card_id, comment_id)` | Only with `FOURGA_ALLOW_DELETE=true` |
 
@@ -187,7 +188,7 @@ just before it is moved (if someone else already moved it, the next card is trie
 
 - **Least privilege.** Use a dedicated 4ga user that is a member (editor) of only the boards you want exposed, and
   prefer an API client with only these permissions:
-  `projects.index, boards.show, cards.show, cards.create, cards.update, comments.index, comments.create, tasks.create, tasks.update, card-labels.create, card-labels.delete`
+  `projects.index, boards.show, cards.show, cards.create, cards.update, comments.index, comments.create, tasks.create, tasks.update, card-labels.create, card-labels.delete, card-memberships.create, card-memberships.delete`
   (add `cards.delete`, `comments.delete` only if you enable deletes). Cards created this way are flagged "created via API" in 4ga.
 - **Deletes are off by default** and the tools are not registered at all. The client layer also refuses delete calls.
 - **Focus mode** (`FOURGA_DEFAULT_BOARD_ID`) is enforced by this server on top of the account's own access. It is a guard

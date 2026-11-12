@@ -12,6 +12,9 @@ export interface Card {
 }
 export interface Task { id: string; cardId: string; name: string; position: number; isCompleted: boolean; dueDate?: string | null }
 export interface CardLabel { id: string; cardId: string; labelId: string }
+export interface User { id: string; name: string | null; username: string | null }
+export interface BoardMembership { id: string; boardId: string; userId: string; role: string }
+export interface CardMembership { id: string; cardId: string; userId: string }
 export interface Comment { id: string; cardId: string; userId: string; data: { text: string; userName?: string }; createdAt: string | null }
 
 export interface BoardSnapshot {
@@ -21,4 +24,7 @@ export interface BoardSnapshot {
   cards: Card[];
   tasks: Task[];
   cardLabels: CardLabel[];
+  /** Users that are members of this board (only they can be assigned to cards). */
+  members: User[];
+  cardMemberships: CardMembership[];
 }

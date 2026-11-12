@@ -2,7 +2,7 @@ import type { Config } from '../config.js';
 import { Authenticator, type FetchLike } from './auth.js';
 import { ApiError } from './errors.js';
 import { Http } from './http.js';
-import type { BoardSnapshot, BoardSummary, Card, CardLabel, Comment, Project, Task } from './types.js';
+import type { BoardMembership, BoardSnapshot, BoardSummary, Card, CardLabel, CardMembership, Comment, Project, Task, User } from './types.js';
 
 interface Item<T> { item: T }
 interface Items<T, I = unknown> { items: T[]; included?: I }
@@ -39,10 +39,13 @@ export class FourgaClient {
   async getBoard(boardId: string): Promise<BoardSnapshot> {
     const r = await this.http.request<
       Item<BoardSummary> & {
-        included?: { lists?: BoardSnapshot['lists']; labels?: BoardSnapshot['labels']; cards?: Card[]; tasks?: Task[]; cardLabels?: CardLabel[] };
+        included?: { lists?: BoardSnapshot['lists']; labels?: BoardSnapshot['labels']; cards?: Card[]; tasks?: Task[]; cardLabels?: CardLabel[];
+        users?: User[]; boardMemberships?: BoardMembership[]; cardMemberships?: CardMembership[];
+      };
       }
     >('GET', `/boards/${boardId}`, { hint: 'Check the board id with list_boards.' });
     const inc = r.included ?? {};
+    const memberIds = new Set((inc.boardMemberships ?? []).filter((m) => m.boardId === r.item.id).map((m) => m.userId));
     return {
       board: r.item,
       lists: [...(inc.lists ?? [])].sort((a, b) => a.position - b.position),
@@ -50,16 +53,18 @@ export class FourgaClient {
       cards: inc.cards ?? [],
       tasks: inc.tasks ?? [],
       cardLabels: inc.cardLabels ?? [],
+      members: (inc.users ?? []).filter((u) => memberIds.has(u.id)).map(({ id, name, username }) => ({ id, name, username })),
+      cardMemberships: inc.cardMemberships ?? [],
     };
   }
 
-  async getCard(cardId: string): Promise<{ card: Card; tasks: Task[]; cardLabels: CardLabel[] }> {
-    const r = await this.http.request<Item<Card> & { included?: { tasks?: Task[]; cardLabels?: CardLabel[] } }>(
+  async getCard(cardId: string): Promise<{ card: Card; tasks: Task[]; cardLabels: CardLabel[]; cardMemberships: CardMembership[] }> {
+    const r = await this.http.request<Item<Card> & { included?: { tasks?: Task[]; cardLabels?: CardLabel[]; cardMemberships?: CardMembership[] } }>(
       'GET',
       `/cards/${cardId}`,
       { hint: 'Check the card id with get_board / list_cards.' },
     );
-    return { card: r.item, tasks: r.included?.tasks ?? [], cardLabels: r.included?.cardLabels ?? [] };
+    return { card: r.item, tasks: r.included?.tasks ?? [], cardLabels: r.included?.cardLabels ?? [], cardMemberships: r.included?.cardMemberships ?? [] };
   }
 
   /** Newest first; pass `beforeId` of the last item for the next (older) page. */
@@ -112,6 +117,15 @@ export class FourgaClient {
   async addCardLabel(cardId: string, labelId: string): Promise<CardLabel> {
     const r = await this.http.request<Item<CardLabel>>('POST', `/cards/${cardId}/labels`, { body: { labelId }, hint: 'Check card and label ids.' });
     return r.item;
+  }
+
+  async addCardMember(cardId: string, userId: string): Promise<CardMembership> {
+    const r = await this.http.request<Item<CardMembership>>('POST', `/cards/${cardId}/memberships`, { body: { userId }, hint: 'Check card id and user id; the user must be a member of the board.' });
+    return r.item;
+  }
+
+  async removeCardMember(cardId: string, userId: string): Promise<void> {
+    await this.http.request('DELETE', `/cards/${cardId}/memberships`, { query: { userId }, hint: 'The user may not be assigned to this card.' });
   }
 
   async removeCardLabel(cardId: string, labelId: string): Promise<void> {

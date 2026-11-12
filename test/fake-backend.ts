@@ -19,6 +19,9 @@ export function fakeBackend() {
     ] as ReturnType<typeof mk>[],
     tasks: [] as { id: string; cardId: string; name: string; position: number; isCompleted: boolean }[],
     cardLabels: [] as { id: string; cardId: string; labelId: string }[],
+    users: [{ id: '70', name: 'Alice Martin', username: 'alice', email: 'a@x.io' }, { id: '71', name: 'Bob', username: 'bob', email: 'b@x.io' }, { id: '72', name: 'Outsider', username: 'out', email: 'o@x.io' }],
+    boardMemberships: [{ id: '80', boardId: '1', userId: '70', role: 'editor' }, { id: '81', boardId: '1', userId: '71', role: 'viewer' }],
+    cardMemberships: [] as { id: string; cardId: string; userId: string }[],
     comments: [] as { id: string; cardId: string; userId: string; data: { text: string; userName: string }; createdAt: string }[],
     seq: 1000,
     calls: [] as string[],
@@ -40,12 +43,13 @@ export function fakeBackend() {
         included: {
           lists: db.lists.filter((l) => l.boardId === b), labels: db.labels.filter((l) => l.boardId === b),
           cards: db.cards.filter((c) => c.boardId === b), tasks: db.tasks, cardLabels: db.cardLabels,
+          users: db.users, boardMemberships: db.boardMemberships, cardMemberships: db.cardMemberships,
         },
       });
     }
     if (m === 'GET' && (r = p.match(/^\/cards\/(\d+)$/))) {
       const c = db.cards.find((x) => x.id === r![1]);
-      return c ? res(200, { item: c, included: { tasks: db.tasks.filter((t) => t.cardId === c.id), cardLabels: db.cardLabels.filter((l) => l.cardId === c.id) } }) : res(404, { code: 'E_NOT_FOUND', message: 'Card not found' });
+      return c ? res(200, { item: c, included: { tasks: db.tasks.filter((t) => t.cardId === c.id), cardLabels: db.cardLabels.filter((l) => l.cardId === c.id), cardMemberships: db.cardMemberships.filter((x) => x.cardId === c.id) } }) : res(404, { code: 'E_NOT_FOUND', message: 'Card not found' });
     }
     if (m === 'GET' && (r = p.match(/^\/cards\/(\d+)\/comments$/))) {
       const all = db.comments.filter((c) => c.cardId === r![1]).sort((a, b) => Number(b.id) - Number(a.id));
@@ -103,6 +107,18 @@ export function fakeBackend() {
     }
     if (m === 'DELETE' && (r = p.match(/^\/cards\/(\d+)\/labels\/(\d+)$/))) {
       db.cardLabels = db.cardLabels.filter((l) => !(l.cardId === r![1] && l.labelId === r![2]));
+      return res(200, { item: {} });
+    }
+    if (m === 'POST' && (r = p.match(/^\/cards\/(\d+)\/memberships$/))) {
+      if (db.cardMemberships.some((x) => x.cardId === r![1] && x.userId === body.userId)) return res(409, { message: 'User already card member' });
+      const cm = { id: String(db.seq++), cardId: r[1]!, userId: String(body.userId) };
+      db.cardMemberships.push(cm);
+      return res(200, { item: cm });
+    }
+    if (m === 'DELETE' && (r = p.match(/^\/cards\/(\d+)\/memberships$/))) {
+      const uid = u.searchParams.get('userId');
+      if (!db.cardMemberships.some((x) => x.cardId === r![1] && x.userId === uid)) return res(404, { message: 'User not card member' });
+      db.cardMemberships = db.cardMemberships.filter((x) => !(x.cardId === r![1] && x.userId === uid));
       return res(200, { item: {} });
     }
     return res(404, { message: `unhandled ${m} ${p}` });

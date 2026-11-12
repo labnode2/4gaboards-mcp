@@ -3,7 +3,7 @@ import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/
 import { z } from 'zod';
 import type { FourgaClient } from '../api/client.js';
 import { ApiError, UserError } from '../api/errors.js';
-import type { BoardSnapshot, Card, Label, List } from '../api/types.js';
+import type { BoardSnapshot, Card, Label, List, User } from '../api/types.js';
 
 export interface Ctx {
   client: FourgaClient;
@@ -103,6 +103,14 @@ function pick<T extends { id: string }>(items: T[], ref: string, name: (t: T) =>
 
 export const resolveList = (s: BoardSnapshot, ref: string): List => pick(s.lists, ref, (l) => l.name, 'list', s.board.id);
 export const resolveLabel = (s: BoardSnapshot, ref: string): Label => pick(s.labels, ref, (l) => l.name, 'label', s.board.id);
+export const resolveMember = (s: BoardSnapshot, ref: string): User => {
+  const r = ref.trim().replace(/^@/, '');
+  const byUsername = s.members.filter((u) => u.username !== null && lc(u.username) === lc(r));
+  if (byUsername.length === 1) return byUsername[0] as User;
+  return pick(s.members, r, (u) => u.name ?? u.username, 'member', s.board.id);
+};
+
+export const memberView = (u: User) => ({ id: u.id, name: u.name, username: u.username });
 
 export function cardSummary(s: BoardSnapshot, c: Card) {
   const list = s.lists.find((l) => l.id === c.listId);
@@ -149,6 +157,7 @@ export async function cardDetails(ctx: Ctx, cardId: string, commentLimit = 20) {
   const [snap, newestFirst] = await Promise.all([ctx.client.getBoard(card.boardId), ctx.client.listComments(cardId)]);
   const list = snap.lists.find((l) => l.id === card.listId);
   const labelIds = new Set(loaded.cardLabels.map((cl) => cl.labelId));
+  const memberIds = new Set(loaded.cardMemberships.map((m) => m.userId));
   const comments = newestFirst.slice(0, commentLimit).reverse();
   return {
     id: card.id,
@@ -161,6 +170,7 @@ export async function cardDetails(ctx: Ctx, cardId: string, commentLimit = 20) {
     created: card.createdAt,
     updated: card.updatedAt,
     labels: snap.labels.filter((l) => labelIds.has(l.id)).map((l) => ({ id: l.id, name: l.name, color: l.color })),
+    members: snap.members.filter((u) => memberIds.has(u.id)).map(memberView),
     tasks: [...loaded.tasks]
       .sort((a, b) => a.position - b.position)
       .map((t) => ({ id: t.id, name: t.name, done: t.isCompleted })),

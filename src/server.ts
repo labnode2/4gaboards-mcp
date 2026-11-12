@@ -3,6 +3,7 @@ import { registerBoardTools } from './tools/boards.js';
 import { registerCardTools } from './tools/cards.js';
 import { registerCommentTools } from './tools/comments.js';
 import { registerLabelTools } from './tools/labels.js';
+import { registerMemberTools } from './tools/members.js';
 import type { Ctx } from './tools/shared.js';
 import { registerTaskTools } from './tools/tasks.js';
 import { registerWorkflowTools } from './tools/workflow.js';
@@ -25,6 +26,7 @@ export function createServer(ctx: Ctx): McpServer {
   registerCommentTools(server, ctx);
   registerTaskTools(server, ctx);
   registerLabelTools(server, ctx);
+  registerMemberTools(server, ctx);
   registerWorkflowTools(server, ctx);
   return server;
 }

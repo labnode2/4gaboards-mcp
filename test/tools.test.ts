@@ -107,6 +107,21 @@ describe('write tools', () => {
     expect((await call('get_card', { card_id: '999' })).text).toMatch(/unknown id/);
   });
 
+  it('add/remove card member by username or name, listed in get_card/get_board', async () => {
+    const { call } = await connect();
+    expect((await call('get_board', { board_id: '1' })).json.members).toEqual([
+      { id: '70', name: 'Alice Martin', username: 'alice' }, { id: '71', name: 'Bob', username: 'bob' },
+    ]);
+    expect((await call('add_card_member', { card_id: '100', user: '@Alice' })).json.member.id).toBe('70');
+    expect((await call('add_card_member', { card_id: '100', user: '71' })).json.member.username).toBe('bob');
+    expect((await call('add_card_member', { card_id: '100', user: 'alice' })).text).toMatch(/Conflict \(409\)/);
+    expect((await call('add_card_member', { card_id: '100', user: 'out' })).text).toMatch(/Unknown member/);
+    expect((await call('get_card', { card_id: '100' })).json.members.map((m: { username: string }) => m.username)).toEqual(['alice', 'bob']);
+    await call('remove_card_member', { card_id: '100', user: 'Alice Martin' });
+    expect((await call('get_card', { card_id: '100' })).json.members.map((m: { username: string }) => m.username)).toEqual(['bob']);
+    expect((await call('remove_card_member', { card_id: '100', user: 'alice' })).text).toMatch(/Not found/i);
+  });
+
   it('validates ids with zod', async () => {
     const { mcp } = await connect();
     const r = await mcp.callTool({ name: 'get_card', arguments: { card_id: 'abc' } });
