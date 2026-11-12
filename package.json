@@ -1,6 +1,6 @@
 {
   "name": "4gaboards-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for 4ga Boards (self-hosted kanban)",
   "type": "module",
   "license": "MIT",

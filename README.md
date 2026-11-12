@@ -39,6 +39,29 @@ See `.env.example`.
 
 ## Claude Code
 
+### Plugin (marketplace)
+
+The repo is also a Claude Code plugin marketplace. No global install, and updates come with each release:
+
+```
+/plugin marketplace add labnode2/4gaboards-mcp
+/plugin install 4gaboards@labnode2
+```
+
+The plugin contains no credentials. Define them on each machine (shell or the `env` key of `~/.claude/settings.json`),
+one API client per agent:
+
+```bash
+export FOURGA_URL=https://boards.lan FOURGA_CLIENT_ID=... FOURGA_CLIENT_SECRET=...
+```
+
+- It runs `npx -y github:labnode2/4gaboards-mcp#<tag>`, pinned to a release tag. The first start downloads and builds
+  the package, which can outlast Claude Code's startup timeout: restart Claude Code if the server shows as failed once.
+- Updates only happen when the `version` is bumped. To release: bump the version in `package.json`,
+  `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` and the tag in `.mcp.json`, then tag `v<version>`.
+- Installing a plugin runs code from this repo on every update: only add marketplaces you trust.
+- Only `FOURGA_CLIENT_ID`/`SECRET` auth is wired up; for other modes use the stdio setup below.
+
 ### stdio (recommended)
 
 Each agent runs its own copy, started by Claude Code as a child process: no port, no token, and it talks to

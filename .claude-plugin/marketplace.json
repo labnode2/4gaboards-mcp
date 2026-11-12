@@ -1,0 +1,13 @@
+{
+  "name": "labnode2",
+  "owner": { "name": "labnode2" },
+  "metadata": { "description": "Claude Code plugins by labnode2" },
+  "plugins": [
+    {
+      "name": "4gaboards",
+      "source": "./",
+      "description": "MCP server for 4ga Boards (self-hosted kanban): projects, boards, lists, cards, tasks, labels and comments.",
+      "version": "1.0.2"
+    }
+  ]
+}

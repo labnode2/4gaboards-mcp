@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "4ga": {
+      "command": "npx",
+      "args": ["-y", "github:labnode2/4gaboards-mcp#v1.0.2"],
+      "env": {
+        "FOURGA_URL": "${FOURGA_URL}",
+        "FOURGA_CLIENT_ID": "${FOURGA_CLIENT_ID}",
+        "FOURGA_CLIENT_SECRET": "${FOURGA_CLIENT_SECRET}"
+      }
+    }
+  }
+}

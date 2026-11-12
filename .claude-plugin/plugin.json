@@ -1,0 +1,8 @@
+{
+  "name": "4gaboards",
+  "version": "1.0.2",
+  "description": "MCP server for 4ga Boards (self-hosted kanban)",
+  "author": { "name": "labnode2" },
+  "repository": "https://github.com/labnode2/4gaboards-mcp",
+  "license": "MIT"
+}
